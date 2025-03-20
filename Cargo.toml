@@ -1,0 +1,31 @@
+[package]
+name = "micattix"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "A Rust library for the Mattix board game, named after mica's perfect cleavage property"
+license = "MIT"
+repository = "https://github.com/yourusername/micattix"
+
+[dependencies]
+rand = "0.8.5"
+ggez = { version = "0.8.1", optional = true }
+
+[features]
+default = ["console_ui"]
+console_ui = []
+ggez_ui = ["dep:ggez"]
+
+[lib]
+name = "micattix"
+path = "src/lib.rs"
+
+[[bin]]
+name = "micattix-console"
+path = "src/bin/console.rs"
+required-features = ["console_ui"]
+
+[[bin]]
+name = "micattix-ggez"
+path = "src/bin/ggez.rs"
+required-features = ["ggez_ui"]
