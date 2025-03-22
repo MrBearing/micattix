@@ -1,5 +1,5 @@
 // src/game.rs - ゲームセッション管理
-use crate::core::{Board, BoardSize, Player, Piece};
+use crate::core::{Board, BoardSize, Player, Piece, GameMode};
 use std::collections::HashMap;
 
 // プレイヤースコア
@@ -33,17 +33,25 @@ pub struct GameSession {
     pub scores: HashMap<Player, PlayerScore>,
     pub round: usize,
     pub total_scores: HashMap<Player, i32>,
+    pub game_mode: GameMode,
+    pub players: Vec<Player>,
 }
 
 impl GameSession {
-    pub fn new(size: BoardSize) -> Self {
+    pub fn new(size: BoardSize, game_mode: GameMode) -> Self {
         let mut scores = HashMap::new();
-        scores.insert(Player::First, PlayerScore::new());
-        scores.insert(Player::Second, PlayerScore::new());
-
         let mut total_scores = HashMap::new();
-        total_scores.insert(Player::First, 0);
-        total_scores.insert(Player::Second, 0);
+
+        // ゲームモードに応じたプレイヤーリスト
+        let players = match game_mode {
+            GameMode::TwoPlayers => vec![Player::First, Player::Second],
+            GameMode::FourPlayers => vec![Player::First, Player::Second, Player::Third, Player::Fourth],
+        };
+
+        for player in &players {
+            scores.insert(*player, PlayerScore::new());
+            total_scores.insert(*player, 0);
+        }
 
         Self {
             board: Board::new(size),
@@ -51,17 +59,25 @@ impl GameSession {
             scores,
             round: 1,
             total_scores,
+            game_mode,
+            players,
         }
     }
 
-    pub fn new_with_board(board: Board) -> Self {
+    pub fn new_with_board(board: Board, game_mode: GameMode) -> Self {
         let mut scores = HashMap::new();
-        scores.insert(Player::First, PlayerScore::new());
-        scores.insert(Player::Second, PlayerScore::new());
-
         let mut total_scores = HashMap::new();
-        total_scores.insert(Player::First, 0);
-        total_scores.insert(Player::Second, 0);
+        
+        // ゲームモードに応じたプレイヤーリスト
+        let players = match game_mode {
+            GameMode::TwoPlayers => vec![Player::First, Player::Second],
+            GameMode::FourPlayers => vec![Player::First, Player::Second, Player::Third, Player::Fourth],
+        };
+        
+        for player in &players {
+            scores.insert(*player, PlayerScore::new());
+            total_scores.insert(*player, 0);
+        }
 
         Self {
             board,
@@ -69,19 +85,21 @@ impl GameSession {
             scores,
             round: 1,
             total_scores,
+            game_mode,
+            players,
         }
     }
 
     // プレイヤーの移動を処理
     pub fn process_move(&mut self, target: (usize, usize)) -> Result<(), String> {
         let result = self.board.make_move(self.current_player, target);
-        
+
         match result {
             Ok(piece) => {
                 if let Piece::Number(_) = piece {
                     self.scores.get_mut(&self.current_player).unwrap().add_piece(piece);
                 }
-                self.current_player = self.current_player.next();
+                self.current_player = self.current_player.next_for_mode(self.game_mode);
                 Ok(())
             },
             Err(e) => Err(e),
@@ -99,46 +117,101 @@ impl GameSession {
             return None;
         }
 
-        let first_score = self.scores.get(&Player::First).unwrap().total;
-        let second_score = self.scores.get(&Player::Second).unwrap().total;
+        // 全プレイヤーの中で最高得点を見つける
+        let mut highest_score = i32::MIN;
+        let mut winner: Option<Player> = None;
+        let mut is_tie = false;
 
-        if first_score > second_score {
-            Some(Player::First)
-        } else if second_score > first_score {
-            Some(Player::Second)
-        } else {
+        for player in &self.players {
+            let score = self.scores.get(player).unwrap().total;
+
+            if score > highest_score {
+                highest_score = score;
+                winner = Some(*player);
+                is_tie = false;
+            } else if score == highest_score {
+                is_tie = true;
+            }
+        }
+
+        if is_tie {
             None // 引き分け
+        } else {
+            winner
         }
     }
 
     // 次のラウンドを開始
     pub fn start_next_round(&mut self) {
         // 現在のラウンドのスコアを合計に追加
-        for player in [Player::First, Player::Second].iter() {
+        for player in &self.players {
             let round_score = self.scores.get(player).unwrap().total;
             *self.total_scores.get_mut(player).unwrap() += round_score;
         }
 
         // 新しいラウンドを初期化
         self.board = Board::new(self.board.size);
-        self.scores.insert(Player::First, PlayerScore::new());
-        self.scores.insert(Player::Second, PlayerScore::new());
+        
+        // スコアを初期化
+        for player in &self.players {
+            self.scores.insert(*player, PlayerScore::new());
+        }
+        
+        // ラウンドをインクリメント
         self.round += 1;
-        // 先手・後手を入れ替える場合は以下をコメント解除
-        // self.current_player = self.current_player.next();
+        
+        // 先手を変える場合はここで設定
+        // 例: 4人モードで順番にスタートプレイヤーをローテーション
+        if self.round > 1 {
+            let index = (self.round - 1) % self.players.len();
+            self.current_player = self.players[index];
+        }
     }
 
     // 総合勝者を取得
     pub fn get_overall_winner(&self) -> Option<Player> {
-        let first_total = self.total_scores.get(&Player::First).unwrap();
-        let second_total = self.total_scores.get(&Player::Second).unwrap();
+        // 全プレイヤーの中で最高の合計得点を見つける
+        let mut highest_total = i32::MIN;
+        let mut winner: Option<Player> = None;
+        let mut is_tie = false;
 
-        if first_total > second_total {
-            Some(Player::First)
-        } else if second_total > first_total {
-            Some(Player::Second)
-        } else {
+        for player in &self.players {
+            let total = *self.total_scores.get(player).unwrap();
+            
+            if total > highest_total {
+                highest_total = total;
+                winner = Some(*player);
+                is_tie = false;
+            } else if total == highest_total {
+                is_tie = true;
+            }
+        }
+
+        if is_tie {
             None // 引き分け
+        } else {
+            winner
+        }
+    }
+    
+    // 特定のプレイヤーの名前を取得
+    pub fn get_player_name(&self, player: Player) -> String {
+        match self.game_mode {
+            GameMode::TwoPlayers => {
+                match player {
+                    Player::First => "プレイヤー1 (横)".to_string(),
+                    Player::Second => "プレイヤー2 (縦)".to_string(),
+                    _ => format!("{:?}", player), // 2人プレイの場合は通常使用されない
+                }
+            },
+            GameMode::FourPlayers => {
+                match player {
+                    Player::First => "プレイヤー1 (横)".to_string(),
+                    Player::Second => "プレイヤー2 (縦)".to_string(),
+                    Player::Third => "プレイヤー3 (横)".to_string(),
+                    Player::Fourth => "プレイヤー4 (縦)".to_string(),
+                }
+            },
         }
     }
 }
@@ -166,16 +239,16 @@ pub struct GameManager {
 }
 
 impl GameManager {
-    pub fn new(size: BoardSize) -> Self {
+    pub fn new(size: BoardSize, game_mode: GameMode) -> Self {
         Self {
-            session: GameSession::new(size),
+            session: GameSession::new(size, game_mode),
             listeners: Vec::new(),
         }
     }
 
-    pub fn new_with_board(board: Board) -> Self {
+    pub fn new_with_board(board: Board, game_mode: GameMode) -> Self {
         Self {
-            session: GameSession::new_with_board(board),
+            session: GameSession::new_with_board(board, game_mode),
             listeners: Vec::new(),
         }
     }
