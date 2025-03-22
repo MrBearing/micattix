@@ -1,5 +1,7 @@
 # Micattix
 
+[![CI](https://github.com/MrBearing/micattix/actions/workflows/ci.yml/badge.svg)](https://github.com/MrBearing/micattix/actions/workflows/ci.yml)
+
 Micattixは、二人用のMattixボードゲームをRustで実装したライブラリです。名前は雲母(mica)の完全へき開性（一方向のみに割れる性質）にちなんでおり、ゲームの一方向移動という特性を表しています。
 
 ## ゲームルール
