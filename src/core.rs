@@ -2,6 +2,13 @@
 use rand::prelude::*;
 use std::fmt;
 
+// ゲームモード定義
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum GameMode {
+    TwoPlayers,
+    FourPlayers,
+}
+
 // ゲーム盤のサイズ定義
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BoardSize {
@@ -19,10 +26,12 @@ impl BoardSize {
 }
 
 // プレイヤー定義
-#[derive(Debug, Clone, Copy, PartialEq,Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Player {
-    First,  // 横軸移動
-    Second, // 縦軸移動
+    First,   // 横軸移動
+    Second,  // 縦軸移動
+    Third,   // 横軸移動
+    Fourth,  // 縦軸移動
 }
 
 // 移動方向
@@ -35,15 +44,50 @@ pub enum MoveDirection {
 impl Player {
     pub fn direction(&self) -> MoveDirection {
         match self {
-            Player::First => MoveDirection::Horizontal,
-            Player::Second => MoveDirection::Vertical,
+            Player::First | Player::Third => MoveDirection::Horizontal,
+            Player::Second | Player::Fourth => MoveDirection::Vertical,
         }
     }
 
     pub fn next(&self) -> Self {
         match self {
             Player::First => Player::Second,
+            Player::Second => Player::Third,
+            Player::Third => Player::Fourth,
+            Player::Fourth => Player::First,
+        }
+    }
+
+    // 2人モードでの次のプレイヤー
+    pub fn next_two_player(&self) -> Self {
+        match self {
+            Player::First => Player::Second,
             Player::Second => Player::First,
+            _ => Player::First, // 念のための対応
+        }
+    }
+
+    // ゲームモードに応じたプレイヤーリストを取得
+    pub fn get_players(game_mode: GameMode) -> Vec<Player> {
+        match game_mode {
+            GameMode::TwoPlayers => vec![Player::First, Player::Second],
+            GameMode::FourPlayers => vec![Player::First, Player::Second, Player::Third, Player::Fourth],
+        }
+    }
+
+    // ゲームモードに応じた次のプレイヤーを取得
+    // ゲームモードに応じた次のプレイヤーを取得
+    pub fn next_for_mode(&self, game_mode: GameMode) -> Self {
+        match game_mode {
+            GameMode::TwoPlayers => {
+                match self {
+                    Player::First => Player::Second,
+                    Player::Second => Player::First,
+                    Player::Third => Player::Fourth,  // これらは2人モードでは使われないはず
+                    Player::Fourth => Player::Third,  // これらは2人モードでは使われないはず
+                }
+            },
+            GameMode::FourPlayers => self.next(),
         }
     }
 }
@@ -253,6 +297,7 @@ impl Board {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::game::*;
 
     #[test]
     fn test_board_size() {
@@ -264,12 +309,41 @@ mod tests {
     fn test_player_direction() {
         assert_eq!(Player::First.direction(), MoveDirection::Horizontal);
         assert_eq!(Player::Second.direction(), MoveDirection::Vertical);
+        assert_eq!(Player::Third.direction(), MoveDirection::Horizontal);
+        assert_eq!(Player::Fourth.direction(), MoveDirection::Vertical);
     }
 
     #[test]
     fn test_player_next() {
         assert_eq!(Player::First.next(), Player::Second);
-        assert_eq!(Player::Second.next(), Player::First);
+        assert_eq!(Player::Second.next(), Player::Third);
+        assert_eq!(Player::Third.next(), Player::Fourth);
+        assert_eq!(Player::Fourth.next(), Player::First);
+    }
+    
+    #[test]
+    fn test_player_next_two_player() {
+        assert_eq!(Player::First.next_two_player(), Player::Second);
+        assert_eq!(Player::Second.next_two_player(), Player::First);
+    }
+    
+    #[test]
+    fn test_players_for_game_mode() {
+        // 2人モードのGameSessionをテスト
+        let two_player_session = GameSession::new(BoardSize::Small, GameMode::TwoPlayers);
+        assert_eq!(two_player_session.players.len(), 2);
+        assert!(two_player_session.players.contains(&Player::First));
+        assert!(two_player_session.players.contains(&Player::Second));
+        assert!(!two_player_session.players.contains(&Player::Third));
+        assert!(!two_player_session.players.contains(&Player::Fourth));
+        
+        // 4人モードのGameSessionをテスト
+        let four_player_session = GameSession::new(BoardSize::Small, GameMode::FourPlayers);
+        assert_eq!(four_player_session.players.len(), 4);
+        assert!(four_player_session.players.contains(&Player::First));
+        assert!(four_player_session.players.contains(&Player::Second));
+        assert!(four_player_session.players.contains(&Player::Third));
+        assert!(four_player_session.players.contains(&Player::Fourth));
     }
 
     #[test]
@@ -458,5 +532,20 @@ mod tests {
         
         // ゲームがまだ終了していないことを確認
         assert!(!board.is_game_over());
+    }
+    
+    #[test]
+    fn test_get_players_for_game_mode() {
+        let two_players = Player::get_players(GameMode::TwoPlayers);
+        assert_eq!(two_players.len(), 2);
+        assert_eq!(two_players[0], Player::First);
+        assert_eq!(two_players[1], Player::Second);
+        
+        let four_players = Player::get_players(GameMode::FourPlayers);
+        assert_eq!(four_players.len(), 4);
+        assert_eq!(four_players[0], Player::First);
+        assert_eq!(four_players[1], Player::Second);
+        assert_eq!(four_players[2], Player::Third);
+        assert_eq!(four_players[3], Player::Fourth);
     }
 }
