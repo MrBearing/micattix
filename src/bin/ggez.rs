@@ -5,7 +5,7 @@ use ggez::input::keyboard::KeyInput;
 use ggez::input::mouse::MouseButton;
 use ggez::mint::Point2;
 use ggez::{Context, GameResult};
-use micattix::core::{BoardSize, Piece, Player};
+use micattix::core::{BoardSize, GameMode, Piece, Player};
 use micattix::game::{GameEvent, GameEventListener, GameManager};
 use std::io::{self, Write};
 
@@ -23,7 +23,8 @@ struct MicattixGame {
 
 impl MicattixGame {
     pub fn new(_ctx: &mut Context, size: BoardSize) -> Self {
-        let manager = GameManager::new(size);
+        // デフォルトで2プレイヤーモードを使用
+        let manager = GameManager::new(size, GameMode::TwoPlayers);
 
         Self {
             manager,
@@ -147,6 +148,12 @@ impl MicattixGame {
             Player::Second => {
                 Text::new(TextFragment::new("Current Player: Second (Vertical)").scale(24.0))
             }
+            Player::Third => {
+                Text::new(TextFragment::new("Current Player: Third (Horizontal)").scale(24.0))
+            }
+            Player::Fourth => {
+                Text::new(TextFragment::new("Current Player: Fourth (Vertical)").scale(24.0))
+            }
         };
         let player_pos = Point2 { x: MARGIN, y: 20.0 };
 
@@ -155,14 +162,28 @@ impl MicattixGame {
         // スコア情報
         let first_score = &self.manager.session.scores[&Player::First];
         let second_score = &self.manager.session.scores[&Player::Second];
-
-        let score_text = Text::new(
-            TextFragment::new(format!(
-                "Scores - First: {} | Second: {}",
-                first_score.total, second_score.total
-            ))
-            .scale(20.0),
-        );
+        
+        // ゲームモードに応じたスコア表示
+        let score_text = if self.manager.session.game_mode == GameMode::TwoPlayers {
+            Text::new(
+                TextFragment::new(format!(
+                    "Scores - First: {} | Second: {}",
+                    first_score.total, second_score.total
+                ))
+                .scale(20.0),
+            )
+        } else {
+            // 4人プレイモードの場合
+            let third_score = &self.manager.session.scores[&Player::Third];
+            let fourth_score = &self.manager.session.scores[&Player::Fourth];
+            Text::new(
+                TextFragment::new(format!(
+                    "Scores - First: {} | Second: {} | Third: {} | Fourth: {}",
+                    first_score.total, second_score.total, third_score.total, fourth_score.total
+                ))
+                .scale(20.0),
+            )
+        };
         let score_pos = Point2 {
             x: MARGIN,
             y: MARGIN * 2.0 + self.manager.session.board.size.dimensions().0 as f32 * CELL_SIZE,
@@ -199,13 +220,27 @@ impl MicattixGame {
         let total_first = self.manager.session.total_scores[&Player::First];
         let total_second = self.manager.session.total_scores[&Player::Second];
 
-        let total_text = Text::new(
-            TextFragment::new(format!(
-                "Total Scores - First: {} | Second: {}",
-                total_first, total_second
-            ))
-            .scale(20.0),
-        );
+        // ゲームモードに応じた合計スコア表示
+        let total_text = if self.manager.session.game_mode == GameMode::TwoPlayers {
+            Text::new(
+                TextFragment::new(format!(
+                    "Total Scores - First: {} | Second: {}",
+                    total_first, total_second
+                ))
+                .scale(20.0),
+            )
+        } else {
+            // 4人プレイモードの場合
+            let total_third = self.manager.session.total_scores[&Player::Third];
+            let total_fourth = self.manager.session.total_scores[&Player::Fourth];
+            Text::new(
+                TextFragment::new(format!(
+                    "Total Scores - First: {} | Second: {} | Third: {} | Fourth: {}",
+                    total_first, total_second, total_third, total_fourth
+                ))
+                .scale(20.0),
+            )
+        };
         let total_pos = Point2 {
             x: MARGIN,
             y: MARGIN * 3.0 + self.manager.session.board.size.dimensions().0 as f32 * CELL_SIZE,
@@ -412,6 +447,23 @@ fn main() -> GameResult {
             BoardSize::Small
         }
     };
+    
+    println!("Select game mode:");
+    println!("1: 2 Players");
+    println!("2: 4 Players");
+    
+    let mut input = String::new();
+    io::stdout().flush().unwrap();
+    io::stdin().read_line(&mut input).unwrap();
+    
+    let game_mode = match input.trim() {
+        "1" => GameMode::TwoPlayers,
+        "2" => GameMode::FourPlayers,
+        _ => {
+            println!("Invalid selection, using 2 Players mode");
+            GameMode::TwoPlayers
+        }
+    };
 
     let window_title = match size {
         BoardSize::Small => "Micattix - 4x4",
@@ -432,7 +484,11 @@ fn main() -> GameResult {
 
     let (mut ctx, event_loop) = cb.build()?;
 
+    // ゲームインスタンスを作成
     let mut game = MicattixGame::new(&mut ctx, size);
+    
+    // ゲームモードを設定
+    game.manager.session.game_mode = game_mode;
 
     // ゲーム開始
     game.manager.start_game();
