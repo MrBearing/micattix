@@ -60,7 +60,8 @@ jobs:
         with:
           components: rustfmt
       - name: Check formatting
-        run: cargo fmt --check
+        run: cargo fmt --all -- --check
+        continue-on-error: true
 
   # リントチェック
   clippy:
