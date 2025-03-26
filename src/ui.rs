@@ -30,7 +30,8 @@ impl ConsoleUI {
             let current = self.manager.session.current_player;
             println!("Current player: {:?}", current);
 
-            for player in [Player::First, Player::Second].iter() {
+            // すべてのプレイヤーのスコアを表示
+            for player in &self.manager.session.players {
                 let score = &self.manager.session.scores[player];
                 println!("{:?} score: {}", player, score.total);
             }
@@ -54,7 +55,8 @@ impl ConsoleUI {
             // 入力をパース
             let coords: Vec<&str> = input.split(',').collect();
             if coords.len() != 2 {
-                println!("Invalid input! Enter as 'row,col'");
+                println!("Invalid input! Enter as 'row,col' (例: 0,1)");
+                println!("Valid moves are: {:?}", valid_moves);
                 continue;
             }
 
@@ -62,11 +64,19 @@ impl ConsoleUI {
             let col = coords[1].trim().parse::<usize>();
 
             if row.is_err() || col.is_err() {
-                println!("Invalid coordinates!");
+                println!("Invalid coordinates! Must be numbers (例: 0,1)");
+                println!("Valid moves are: {:?}", valid_moves);
                 continue;
             }
 
             let target = (row.unwrap(), col.unwrap());
+            
+            // 有効な移動かチェック
+            if !valid_moves.contains(&target) {
+                println!("Invalid move! The position ({},{}) is not a valid move.", target.0, target.1);
+                println!("Valid moves are: {:?}", valid_moves);
+                continue;
+            }
 
             // 移動実行
             self.manager.make_move(target);
@@ -98,7 +108,7 @@ impl ConsoleUI {
         // ゲーム終了時の総合結果
         println!("Game over!");
         println!("Final scores:");
-        for player in [Player::First, Player::Second].iter() {
+        for player in &self.manager.session.players {
             println!(
                 "{:?}: {}",
                 player, self.manager.session.total_scores[player]
