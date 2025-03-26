@@ -28,10 +28,10 @@ impl BoardSize {
 // プレイヤー定義
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Player {
-    First,   // 横軸移動
-    Second,  // 縦軸移動
-    Third,   // 横軸移動
-    Fourth,  // 縦軸移動
+    First,  // 横軸移動
+    Second, // 縦軸移動
+    Third,  // 横軸移動
+    Fourth, // 縦軸移動
 }
 
 // 移動方向
@@ -71,7 +71,9 @@ impl Player {
     pub fn get_players(game_mode: GameMode) -> Vec<Player> {
         match game_mode {
             GameMode::TwoPlayers => vec![Player::First, Player::Second],
-            GameMode::FourPlayers => vec![Player::First, Player::Second, Player::Third, Player::Fourth],
+            GameMode::FourPlayers => {
+                vec![Player::First, Player::Second, Player::Third, Player::Fourth]
+            }
         }
     }
 
@@ -83,10 +85,10 @@ impl Player {
                 match self {
                     Player::First => Player::Second,
                     Player::Second => Player::First,
-                    Player::Third => Player::Fourth,  // これらは2人モードでは使われないはず
-                    Player::Fourth => Player::Third,  // これらは2人モードでは使われないはず
+                    Player::Third => Player::Fourth, // これらは2人モードでは使われないはず
+                    Player::Fourth => Player::Third, // これらは2人モードでは使われないはず
                 }
-            },
+            }
             GameMode::FourPlayers => self.next(),
         }
     }
@@ -95,9 +97,9 @@ impl Player {
 // 盤面上の駒
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Piece {
-    Number(i32),    // 数値の駒
-    Cross,          // クロスチップ
-    Empty,          // 空きマス
+    Number(i32), // 数値の駒
+    Cross,       // クロスチップ
+    Empty,       // 空きマス
 }
 
 impl fmt::Display for Piece {
@@ -138,7 +140,7 @@ impl Board {
     // 盤面を初期化（駒をランダムに配置）
     fn initialize(&mut self) {
         let (rows, cols) = self.size.dimensions();
-        
+
         // 駒のセットを作成
         let mut pieces_set = match self.size {
             BoardSize::Small => {
@@ -151,7 +153,7 @@ impl Board {
                 set.push(Piece::Number(8));
                 set.push(Piece::Cross);
                 set
-            },
+            }
             BoardSize::Large => {
                 // 1～9を各2個、-1～-10と+10を各1個
                 let mut set = Vec::new();
@@ -164,14 +166,14 @@ impl Board {
                 }
                 set.push(Piece::Number(10));
                 set.push(Piece::Cross);
-                
+
                 // 6x6のボードには36個の駒が必要だが、上記のコードでは
                 // 9*2 + 10 + 1 + 1 = 30個しか作成されていない
                 // 残りの6個を埋めるために追加駒を作成
                 for i in 1..=6 {
                     set.push(Piece::Number(i)); // 追加の数字を入れる
                 }
-                
+
                 set
             }
         };
@@ -182,8 +184,12 @@ impl Board {
 
         // 盤面に駒を配置
         let total_cells = rows * cols;
-        assert_eq!(pieces_set.len(), total_cells, "駒の数が盤面のセル数と一致しません");
-        
+        assert_eq!(
+            pieces_set.len(),
+            total_cells,
+            "駒の数が盤面のセル数と一致しません"
+        );
+
         let mut index = 0;
         for row in 0..rows {
             for col in 0..cols {
@@ -200,7 +206,7 @@ impl Board {
     pub fn get_valid_moves(&self, player: Player) -> Vec<(usize, usize)> {
         let (row, col) = self.cross_position;
         let (rows, cols) = self.size.dimensions();
-        
+
         let mut valid_moves = Vec::new();
 
         match player.direction() {
@@ -211,7 +217,7 @@ impl Board {
                         valid_moves.push((row, c));
                     }
                 }
-            },
+            }
             MoveDirection::Vertical => {
                 // 縦方向の移動
                 for r in 0..rows {
@@ -228,14 +234,14 @@ impl Board {
     // 駒を移動して取得
     pub fn make_move(&mut self, player: Player, target: (usize, usize)) -> Result<Piece, String> {
         let valid_moves = self.get_valid_moves(player);
-        
+
         if !valid_moves.contains(&target) {
             return Err(format!("Invalid move to {:?}", target));
         }
 
         // 移動先の駒を記録
         let piece = self.pieces[target.0][target.1];
-        
+
         // クロスチップを移動
         self.pieces[self.cross_position.0][self.cross_position.1] = Piece::Empty;
         self.pieces[target.0][target.1] = Piece::Cross;
@@ -247,7 +253,7 @@ impl Board {
     // ゲームが終了したかチェック
     pub fn is_game_over(&self) -> bool {
         let (rows, cols) = self.size.dimensions();
-        
+
         for row in 0..rows {
             for col in 0..cols {
                 if self.pieces[row][col] != Piece::Empty && self.pieces[row][col] != Piece::Cross {
@@ -255,7 +261,7 @@ impl Board {
                 }
             }
         }
-        
+
         true
     }
 
@@ -263,14 +269,14 @@ impl Board {
     pub fn display(&self) -> String {
         let (rows, cols) = self.size.dimensions();
         let mut result = String::new();
-        
+
         for row in 0..rows {
             for col in 0..cols {
                 result.push_str(&format!("{} ", self.pieces[row][col]));
             }
             result.push('\n');
         }
-        
+
         result
     }
 
@@ -320,13 +326,13 @@ mod tests {
         assert_eq!(Player::Third.next(), Player::Fourth);
         assert_eq!(Player::Fourth.next(), Player::First);
     }
-    
+
     #[test]
     fn test_player_next_two_player() {
         assert_eq!(Player::First.next_two_player(), Player::Second);
         assert_eq!(Player::Second.next_two_player(), Player::First);
     }
-    
+
     #[test]
     fn test_players_for_game_mode() {
         // 2人モードのGameSessionをテスト
@@ -336,7 +342,7 @@ mod tests {
         assert!(two_player_session.players.contains(&Player::Second));
         assert!(!two_player_session.players.contains(&Player::Third));
         assert!(!two_player_session.players.contains(&Player::Fourth));
-        
+
         // 4人モードのGameSessionをテスト
         let four_player_session = GameSession::new(BoardSize::Small, GameMode::FourPlayers);
         assert_eq!(four_player_session.players.len(), 4);
@@ -357,16 +363,16 @@ mod tests {
     #[test]
     fn test_board_initialization() {
         let board = Board::new(BoardSize::Small);
-        
+
         // 4x4ボードのサイズを確認
         assert_eq!(board.pieces.len(), 4);
         assert_eq!(board.pieces[0].len(), 4);
-        
+
         // 駒の総数を確認
         let mut num_count = 0;
         let mut cross_count = 0;
         let mut empty_count = 0;
-        
+
         for row in &board.pieces {
             for piece in row {
                 match piece {
@@ -376,7 +382,7 @@ mod tests {
                 }
             }
         }
-        
+
         assert_eq!(num_count, 15); // 1-7の各2個と8の1個
         assert_eq!(cross_count, 1); // クロスチップは1個
         assert_eq!(empty_count, 0); // 空きマスはない（初期状態）
@@ -385,17 +391,17 @@ mod tests {
     #[test]
     fn test_large_board_initialization() {
         let board = Board::new(BoardSize::Large);
-        
+
         // 6x6ボードのサイズを確認
         assert_eq!(board.pieces.len(), 6);
         assert_eq!(board.pieces[0].len(), 6);
-        
+
         // 駒の総数を確認
         let mut positive_count = 0;
         let mut negative_count = 0;
         let mut cross_count = 0;
         let mut empty_count = 0;
-        
+
         for row in &board.pieces {
             for piece in row {
                 match piece {
@@ -403,15 +409,19 @@ mod tests {
                     Piece::Number(n) if *n < 0 => negative_count += 1,
                     Piece::Cross => cross_count += 1,
                     Piece::Empty => empty_count += 1,
-                    _ => {},
+                    _ => {}
                 }
             }
         }
-        
+
         assert_eq!(cross_count, 1, "There should be exactly 1 cross chip");
         assert_eq!(empty_count, 0, "There should be no empty cells initially");
-        assert_eq!(positive_count + negative_count + cross_count, 36, "Total cells should be 36 in a 6x6 board");
-        
+        assert_eq!(
+            positive_count + negative_count + cross_count,
+            36,
+            "Total cells should be 36 in a 6x6 board"
+        );
+
         // 正の数と負の数のチェック（厳密な数ではなく、存在することを確認）
         assert!(positive_count > 0, "There should be positive numbers");
         assert!(negative_count > 0, "There should be negative numbers");
@@ -420,7 +430,7 @@ mod tests {
     #[test]
     fn test_valid_moves() {
         let mut board = Board::new(BoardSize::Small);
-        
+
         // クロスチップの位置を固定
         board.cross_position = (1, 2);
         for row in 0..4 {
@@ -432,14 +442,14 @@ mod tests {
                 }
             }
         }
-        
+
         // 横方向の有効な移動を確認
         let horizontal_moves = board.get_valid_moves(Player::First);
         assert_eq!(horizontal_moves.len(), 3); // 同じ行の他の3マス
         assert!(horizontal_moves.contains(&(1, 0)));
         assert!(horizontal_moves.contains(&(1, 1)));
         assert!(horizontal_moves.contains(&(1, 3)));
-        
+
         // 縦方向の有効な移動を確認
         let vertical_moves = board.get_valid_moves(Player::Second);
         assert_eq!(vertical_moves.len(), 3); // 同じ列の他の3マス
@@ -451,7 +461,7 @@ mod tests {
     #[test]
     fn test_make_move() {
         let mut board = Board::new(BoardSize::Small);
-        
+
         // クロスチップの位置を固定
         board.cross_position = (1, 2);
         for row in 0..4 {
@@ -463,17 +473,17 @@ mod tests {
                 }
             }
         }
-        
+
         // 特定の位置に特別な値を設定
         board.pieces[1][3] = Piece::Number(5);
-        
+
         // 移動を実行
         let result = board.make_move(Player::First, (1, 3));
-        
+
         // 移動が成功し、正しい駒が取得されることを確認
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), Piece::Number(5));
-        
+
         // クロスチップが移動していることを確認
         assert_eq!(board.cross_position, (1, 3));
         assert_eq!(board.pieces[1][3], Piece::Cross);
@@ -483,7 +493,7 @@ mod tests {
     #[test]
     fn test_invalid_move() {
         let mut board = Board::new(BoardSize::Small);
-        
+
         // クロスチップの位置を固定
         board.cross_position = (1, 2);
         for row in 0..4 {
@@ -495,15 +505,15 @@ mod tests {
                 }
             }
         }
-        
+
         // 無効な移動（対角線上）
         let result = board.make_move(Player::First, (2, 3));
         assert!(result.is_err());
-        
+
         // 無効な移動（クロスチップの位置）
         let result = board.make_move(Player::First, (1, 2));
         assert!(result.is_err());
-        
+
         // 無効な移動（盤面外）
         let result = board.make_move(Player::First, (5, 5));
         assert!(result.is_err());
@@ -512,35 +522,35 @@ mod tests {
     #[test]
     fn test_game_over() {
         let mut board = Board::new(BoardSize::Small);
-        
+
         // すべてのマスを空にする
         for row in 0..4 {
             for col in 0..4 {
                 board.pieces[row][col] = Piece::Empty;
             }
         }
-        
+
         // クロスチップだけを配置
         board.pieces[1][2] = Piece::Cross;
         board.cross_position = (1, 2);
-        
+
         // ゲームが終了していることを確認
         assert!(board.is_game_over());
-        
+
         // 1つ数値駒を追加
         board.pieces[0][0] = Piece::Number(3);
-        
+
         // ゲームがまだ終了していないことを確認
         assert!(!board.is_game_over());
     }
-    
+
     #[test]
     fn test_get_players_for_game_mode() {
         let two_players = Player::get_players(GameMode::TwoPlayers);
         assert_eq!(two_players.len(), 2);
         assert_eq!(two_players[0], Player::First);
         assert_eq!(two_players[1], Player::Second);
-        
+
         let four_players = Player::get_players(GameMode::FourPlayers);
         assert_eq!(four_players.len(), 4);
         assert_eq!(four_players[0], Player::First);

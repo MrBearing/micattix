@@ -1,5 +1,5 @@
 // src/game.rs - ゲームセッション管理
-use crate::core::{Board, BoardSize, Player, Piece, GameMode};
+use crate::core::{Board, BoardSize, GameMode, Piece, Player};
 use std::collections::HashMap;
 
 // プレイヤースコア
@@ -45,7 +45,9 @@ impl GameSession {
         // ゲームモードに応じたプレイヤーリスト
         let players = match game_mode {
             GameMode::TwoPlayers => vec![Player::First, Player::Second],
-            GameMode::FourPlayers => vec![Player::First, Player::Second, Player::Third, Player::Fourth],
+            GameMode::FourPlayers => {
+                vec![Player::First, Player::Second, Player::Third, Player::Fourth]
+            }
         };
 
         for player in &players {
@@ -67,13 +69,15 @@ impl GameSession {
     pub fn new_with_board(board: Board, game_mode: GameMode) -> Self {
         let mut scores = HashMap::new();
         let mut total_scores = HashMap::new();
-        
+
         // ゲームモードに応じたプレイヤーリスト
         let players = match game_mode {
             GameMode::TwoPlayers => vec![Player::First, Player::Second],
-            GameMode::FourPlayers => vec![Player::First, Player::Second, Player::Third, Player::Fourth],
+            GameMode::FourPlayers => {
+                vec![Player::First, Player::Second, Player::Third, Player::Fourth]
+            }
         };
-        
+
         for player in &players {
             scores.insert(*player, PlayerScore::new());
             total_scores.insert(*player, 0);
@@ -97,11 +101,14 @@ impl GameSession {
         match result {
             Ok(piece) => {
                 if let Piece::Number(_) = piece {
-                    self.scores.get_mut(&self.current_player).unwrap().add_piece(piece);
+                    self.scores
+                        .get_mut(&self.current_player)
+                        .unwrap()
+                        .add_piece(piece);
                 }
                 self.current_player = self.current_player.next_for_mode(self.game_mode);
                 Ok(())
-            },
+            }
             Err(e) => Err(e),
         }
     }
@@ -151,15 +158,15 @@ impl GameSession {
 
         // 新しいラウンドを初期化
         self.board = Board::new(self.board.size);
-        
+
         // スコアを初期化
         for player in &self.players {
             self.scores.insert(*player, PlayerScore::new());
         }
-        
+
         // ラウンドをインクリメント
         self.round += 1;
-        
+
         // 先手を変える場合はここで設定
         // 例: 4人モードで順番にスタートプレイヤーをローテーション
         if self.round > 1 {
@@ -177,7 +184,7 @@ impl GameSession {
 
         for player in &self.players {
             let total = *self.total_scores.get(player).unwrap();
-            
+
             if total > highest_total {
                 highest_total = total;
                 winner = Some(*player);
@@ -193,7 +200,7 @@ impl GameSession {
             winner
         }
     }
-    
+
     // 特定のプレイヤーの名前を取得
     pub fn get_player_name(&self, player: Player) -> String {
         match self.game_mode {
@@ -203,14 +210,12 @@ impl GameSession {
                     Player::Second => "プレイヤー2 (縦)".to_string(),
                     _ => format!("{:?}", player), // 2人プレイの場合は通常使用されない
                 }
-            },
-            GameMode::FourPlayers => {
-                match player {
-                    Player::First => "プレイヤー1 (横)".to_string(),
-                    Player::Second => "プレイヤー2 (縦)".to_string(),
-                    Player::Third => "プレイヤー3 (横)".to_string(),
-                    Player::Fourth => "プレイヤー4 (縦)".to_string(),
-                }
+            }
+            GameMode::FourPlayers => match player {
+                Player::First => "プレイヤー1 (横)".to_string(),
+                Player::Second => "プレイヤー2 (縦)".to_string(),
+                Player::Third => "プレイヤー3 (横)".to_string(),
+                Player::Fourth => "プレイヤー4 (縦)".to_string(),
             },
         }
     }
@@ -270,23 +275,28 @@ impl GameManager {
 
     pub fn make_move(&mut self, target: (usize, usize)) {
         let current_player = self.session.current_player;
-        
+
         match self.session.process_move(target) {
             Ok(()) => {
                 // 移動した駒を取得
                 let pieces = &self.session.scores.get(&current_player).unwrap().pieces;
                 let last_piece = pieces.last().unwrap_or(&Piece::Empty);
-                
+
                 self.notify(GameEvent::MoveMade(current_player, target, *last_piece));
-                
+
                 // ラウンド終了チェック
                 if self.session.is_round_over() {
                     let winner = self.session.get_round_winner();
-                    let scores = self.session.scores.iter().map(|(k, v)| (*k, v.total)).collect();
-                    
+                    let scores = self
+                        .session
+                        .scores
+                        .iter()
+                        .map(|(k, v)| (*k, v.total))
+                        .collect();
+
                     self.notify(GameEvent::RoundEnded(winner, scores));
                 }
-            },
+            }
             Err(e) => {
                 self.notify(GameEvent::InvalidMove(current_player, target, e));
             }
@@ -300,6 +310,9 @@ impl GameManager {
 
     pub fn end_game(&mut self) {
         let winner = self.session.get_overall_winner();
-        self.notify(GameEvent::GameEnded(winner, self.session.total_scores.clone()));
+        self.notify(GameEvent::GameEnded(
+            winner,
+            self.session.total_scores.clone(),
+        ));
     }
 }
