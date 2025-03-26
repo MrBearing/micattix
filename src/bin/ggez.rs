@@ -162,7 +162,7 @@ impl MicattixGame {
         // スコア情報
         let first_score = &self.manager.session.scores[&Player::First];
         let second_score = &self.manager.session.scores[&Player::Second];
-        
+
         // ゲームモードに応じたスコア表示
         let score_text = if self.manager.session.game_mode == GameMode::TwoPlayers {
             Text::new(
@@ -447,15 +447,15 @@ fn main() -> GameResult {
             BoardSize::Small
         }
     };
-    
+
     println!("Select game mode:");
     println!("1: 2 Players");
     println!("2: 4 Players");
-    
+
     let mut input = String::new();
     io::stdout().flush().unwrap();
     io::stdin().read_line(&mut input).unwrap();
-    
+
     let game_mode = match input.trim() {
         "1" => GameMode::TwoPlayers,
         "2" => GameMode::FourPlayers,
@@ -486,7 +486,7 @@ fn main() -> GameResult {
 
     // ゲームインスタンスを作成
     let mut game = MicattixGame::new(&mut ctx, size);
-    
+
     // ゲームモードを設定
     game.manager.session.game_mode = game_mode;
 

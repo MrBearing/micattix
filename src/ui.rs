@@ -1,5 +1,5 @@
 // src/ui.rs - UI関連のコード
-use crate::core::{Board, BoardSize, GameMode, Player};
+use crate::core::{Board, BoardSize, GameMode};
 use crate::game::{GameEvent, GameEventListener, GameManager};
 use std::io::{self, Write};
 
@@ -70,10 +70,13 @@ impl ConsoleUI {
             }
 
             let target = (row.unwrap(), col.unwrap());
-            
+
             // 有効な移動かチェック
             if !valid_moves.contains(&target) {
-                println!("Invalid move! The position ({},{}) is not a valid move.", target.0, target.1);
+                println!(
+                    "Invalid move! The position ({},{}) is not a valid move.",
+                    target.0, target.1
+                );
                 println!("Valid moves are: {:?}", valid_moves);
                 continue;
             }
