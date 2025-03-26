@@ -132,12 +132,16 @@ impl GameSession {
         for player in &self.players {
             let score = self.scores.get(player).unwrap().total;
 
-            if score > highest_score {
-                highest_score = score;
-                winner = Some(*player);
-                is_tie = false;
-            } else if score == highest_score {
-                is_tie = true;
+            match score.cmp(&highest_score) {
+                std::cmp::Ordering::Greater => {
+                    highest_score = score;
+                    winner = Some(*player);
+                    is_tie = false;
+                }
+                std::cmp::Ordering::Equal => {
+                    is_tie = true;
+                }
+                std::cmp::Ordering::Less => {}
             }
         }
 
@@ -185,12 +189,16 @@ impl GameSession {
         for player in &self.players {
             let total = *self.total_scores.get(player).unwrap();
 
-            if total > highest_total {
-                highest_total = total;
-                winner = Some(*player);
-                is_tie = false;
-            } else if total == highest_total {
-                is_tie = true;
+            match total.cmp(&highest_total) {
+                std::cmp::Ordering::Greater => {
+                    highest_total = total;
+                    winner = Some(*player);
+                    is_tie = false;
+                }
+                std::cmp::Ordering::Equal => {
+                    is_tie = true;
+                }
+                std::cmp::Ordering::Less => {}
             }
         }
 
