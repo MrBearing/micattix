@@ -1,0 +1,9 @@
+# デフォルト設定を使用しつつ、いくつかのルールを調整
+max_width = 100
+tab_spaces = 4
+edition = "2021"
+# フォーマットエラーの一部を緩和するための設定
+# 必要に応じて以下の行のコメントを外してカスタマイズしてください
+# unstable_features = true
+# merge_imports = true
+# imports_granularity = "Module"

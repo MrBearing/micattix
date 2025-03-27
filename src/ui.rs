@@ -1,5 +1,5 @@
 // src/ui.rs - UI関連のコード
-use crate::core::{Board, BoardSize, GameMode, Player};
+use crate::core::{Board, BoardSize, GameMode};
 use crate::game::{GameEvent, GameEventListener, GameManager};
 use std::io::{self, Write};
 
@@ -9,15 +9,13 @@ pub struct ConsoleUI {
 }
 
 impl ConsoleUI {
-    pub fn new(size: BoardSize, game_mode:GameMode) -> Self {
+    pub fn new(size: BoardSize, game_mode: GameMode) -> Self {
         let manager = GameManager::new(size, game_mode);
 
         // セルフを登録できないのでここではリスナーは登録しない
         // ゲーム開始後に別途登録する
 
-        Self {
-            manager,
-        }
+        Self { manager }
     }
 
     pub fn run(&mut self) {
@@ -32,7 +30,8 @@ impl ConsoleUI {
             let current = self.manager.session.current_player;
             println!("Current player: {:?}", current);
 
-            for player in [Player::First, Player::Second].iter() {
+            // すべてのプレイヤーのスコアを表示
+            for player in &self.manager.session.players {
                 let score = &self.manager.session.scores[player];
                 println!("{:?} score: {}", player, score.total);
             }
@@ -56,7 +55,8 @@ impl ConsoleUI {
             // 入力をパース
             let coords: Vec<&str> = input.split(',').collect();
             if coords.len() != 2 {
-                println!("Invalid input! Enter as 'row,col'");
+                println!("Invalid input! Enter as 'row,col' (例: 0,1)");
+                println!("Valid moves are: {:?}", valid_moves);
                 continue;
             }
 
@@ -64,11 +64,22 @@ impl ConsoleUI {
             let col = coords[1].trim().parse::<usize>();
 
             if row.is_err() || col.is_err() {
-                println!("Invalid coordinates!");
+                println!("Invalid coordinates! Must be numbers (例: 0,1)");
+                println!("Valid moves are: {:?}", valid_moves);
                 continue;
             }
 
             let target = (row.unwrap(), col.unwrap());
+
+            // 有効な移動かチェック
+            if !valid_moves.contains(&target) {
+                println!(
+                    "Invalid move! The position ({},{}) is not a valid move.",
+                    target.0, target.1
+                );
+                println!("Valid moves are: {:?}", valid_moves);
+                continue;
+            }
 
             // 移動実行
             self.manager.make_move(target);
@@ -100,8 +111,11 @@ impl ConsoleUI {
         // ゲーム終了時の総合結果
         println!("Game over!");
         println!("Final scores:");
-        for player in [Player::First, Player::Second].iter() {
-            println!("{:?}: {}", player, self.manager.session.total_scores[player]);
+        for player in &self.manager.session.players {
+            println!(
+                "{:?}: {}",
+                player, self.manager.session.total_scores[player]
+            );
         }
 
         match self.manager.session.get_overall_winner() {
@@ -116,16 +130,16 @@ impl GameEventListener for ConsoleUI {
         match event {
             GameEvent::GameStarted => {
                 println!("Game started!");
-            },
+            }
             GameEvent::RoundStarted(round) => {
                 println!("Round {} started!", round);
-            },
+            }
             GameEvent::MoveMade(player, target, piece) => {
                 println!("{:?} moved to {:?} and got {:?}", player, target, piece);
-            },
+            }
             GameEvent::InvalidMove(player, target, reason) => {
                 println!("Invalid move by {:?} to {:?}: {}", player, target, reason);
-            },
+            }
             GameEvent::RoundEnded(winner, scores) => {
                 println!("Round ended!");
                 for (player, score) in scores {
@@ -135,7 +149,7 @@ impl GameEventListener for ConsoleUI {
                     Some(w) => println!("Winner: {:?}", w),
                     None => println!("Round ended in a draw"),
                 }
-            },
+            }
             GameEvent::GameEnded(winner, scores) => {
                 println!("Game ended!");
                 for (player, score) in scores {
@@ -145,7 +159,7 @@ impl GameEventListener for ConsoleUI {
                     Some(w) => println!("Overall winner: {:?}", w),
                     None => println!("Game ended in a draw"),
                 }
-            },
+            }
         }
     }
 }

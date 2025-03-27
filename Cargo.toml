@@ -1,11 +1,15 @@
 [package]
 name = "micattix"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Your Name <your.email@example.com>"]
 description = "A Rust library for the Mattix board game, named after mica's perfect cleavage property"
 license = "MIT"
-repository = "https://github.com/yourusername/micattix"
+repository = "https://github.com/MrBearing/micattix"
+readme = "README.md"
+keywords = ["game", "board-game", "strategy", "mattix", "mica"]
+categories = ["games"]
+documentation = "https://docs.rs/micattix"
 
 [dependencies]
 rand = "0.8.5"

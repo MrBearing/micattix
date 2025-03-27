@@ -2,13 +2,13 @@
 
 [![CI](https://github.com/MrBearing/micattix/actions/workflows/ci.yml/badge.svg)](https://github.com/MrBearing/micattix/actions/workflows/ci.yml)
 
-Micattixは、二人用のMattixボードゲームをRustで実装したライブラリです。名前は雲母(mica)の完全へき開性（一方向のみに割れる性質）にちなんでおり、ゲームの一方向移動という特性を表しています。
+Micattixは、MattixボードゲームをプレイするためのエンジンをRustで実装したライブラリです。2人プレイモードと4人プレイモードをサポートし、コンソールUIとggezを使用したグラフィカルUIの両方を提供します。名前は雲母(mica)の完全へき開性（一方向のみに割れる性質）にちなんでおり、ゲームの一方向移動という特性を表しています。
 
 ## ゲームルール
 
 * 4x4または6x6の盤面を使用
-* 二人のプレイヤーが交互にプレイ
-* 先攻は横軸にのみ移動でき、後攻は縦軸にのみ移動できる
+* 2人または4人のプレイヤーが交互にプレイ
+* 先攻・3番目のプレイヤーは横軸にのみ移動でき、後攻・4番目のプレイヤーは縦軸にのみ移動できる
 * 駒の種類:
   * 4x4の場合: 1～7の数字が各2個、8の数字が1個、クロスチップが1個
   * 6x6の場合: 1～9の数字が各2個、-1～-10と+10の数字が各1個、クロスチップが1個
@@ -20,6 +20,7 @@ Micattixは、二人用のMattixボードゲームをRustで実装したライ�
 * ゲームロジックとUIの明確な分離
 * イベント駆動設計
 * 複数のラウンドをサポート
+* 2人プレイと4人プレイの両方をサポート
 * カスタムUIに対応するインターフェース
 
 ## 使用方法
@@ -30,14 +31,20 @@ Micattixは、二人用のMattixボードゲームをRustで実装したライ�
 cargo run --bin micattix-console
 ```
 
+### グラフィカルUIの実行
+
+```bash
+cargo run --bin micattix-ggez --features ggez_ui
+```
+
 ### ライブラリとして使用
 
 ```rust
-use micattix::core::{Board, BoardSize, Player};
+use micattix::core::{Board, BoardSize, GameMode, Player};
 use micattix::game::GameManager;
 
-// 新しいゲームを作成
-let mut manager = GameManager::new(BoardSize::Small);
+// 新しいゲームを作成（2プレイヤーモード）
+let mut manager = GameManager::new(BoardSize::Small, GameMode::TwoPlayers);
 
 // カスタムリスナーを追加
 manager.add_listener(Box::new(MyCustomListener::new()));
@@ -63,13 +70,14 @@ manager.end_game();
 - `src/game.rs` - ゲームセッション管理とイベント処理
 - `src/ui.rs` - UIの実装とインターフェース
 - `src/bin/console.rs` - コンソールUIの実装
+- `src/bin/ggez.rs` - ggezを使用したグラフィカルUIの実装
 
 ## カスタムUIの作成
 
 カスタムUIを実装するには、`GameEventListener`トレイトを実装します:
 
 ```rust
-use mattix::game::{GameEvent, GameEventListener};
+use micattix::game::{GameEvent, GameEventListener};
 
 struct MyCustomUI;
 
